@@ -28,8 +28,19 @@ class WebAccess
   end
 
   def get(params=nil)
+    query = nil
     if params.is_a?(Hash)
-      @uri.query = URI.encode_www_form(params)
+      query = URI.encode_www_form(params)
+    elsif !params.nil?
+      query = params.to_s
+    end
+    
+    unless query.nil?
+      if @uri.query.nil?
+        @uri.query = query
+      else
+        @uri.query += '&' + query
+      end
     end
 
     @response = @http.request_get(@uri.request_uri, @header)
@@ -44,6 +55,16 @@ class WebAccess
   def postJson(payload)
     @header['Content-Type'] = 'application/json'
     post(JSON.generate(payload))
+  end
+
+  def postForm(params)
+    query = nil
+    if params.is_a?(Hash)
+      query = URI.encode_www_form(params)
+    elsif !params.nil?
+      query = params.to_s
+    end
+    post(query)
   end
 
   def process(&block)
