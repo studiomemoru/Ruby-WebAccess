@@ -2,7 +2,7 @@
 #==========================================
 # Very simple Web API Access Library
 #   by studio memoru
-#   Copyright(c) 2018 by YOSHIMURA Takanori
+#   Copyright(c) 2018-2021 by YOSHIMURA Takanori
 #==========================================
 
 require 'net/http'
@@ -16,23 +16,58 @@ class WebAccess
     @uri = URI.parse(url)
     @http = Net::HTTP.new(@uri.host, @uri.port)
     @http.use_ssl = use_ssl
+    @header = Hash.new
+  end
+
+  def setHeader(key, value)
+    @header[key] = value
   end
 
   def setQuery(str)
     @uri.query = str
   end
 
-  def post(body, headers)
-    req = Net::HTTP::Post.new(@uri.request_uri, headers)
+  def get(params=nil)
+    query = nil
+    if params.is_a?(Hash)
+      query = URI.encode_www_form(params)
+    elsif !params.nil?
+      query = params.to_s
+    end
+    
+    unless query.nil?
+      if @uri.query.nil?
+        @uri.query = query
+      else
+        @uri.query += '&' + query
+      end
+    end
+
+    @response = @http.request_get(@uri.request_uri, @header)
+  end
+
+  def post(body)
+    req = Net::HTTP::Post.new(@uri.request_uri, @header)
     req.body = body
     @response = @http.request(req)
   end
 
   def postJson(payload)
-    post(JSON.generate(payload), {'Content-Type' => 'application/json'})
+    @header['Content-Type'] = 'application/json'
+    post(JSON.generate(payload))
   end
 
-  def result(&block)
+  def postForm(params)
+    query = nil
+    if params.is_a?(Hash)
+      query = URI.encode_www_form(params)
+    elsif !params.nil?
+      query = params.to_s
+    end
+    post(query)
+  end
+
+  def process(&block)
     if @response.is_a?(Net::HTTPSuccess)
       block.call(@response)
     else
@@ -59,7 +94,7 @@ begin
   api.postJson(payload)
   puts "code -> #{api.response.code}"
 
-  api.result do |res|
+  api.process do |res|
     res.each_capitalized_name do |name|
       value = res[name]
       puts "#{name} = #{value}"
