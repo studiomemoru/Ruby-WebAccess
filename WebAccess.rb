@@ -11,6 +11,7 @@ require 'json'
 
 class WebAccess
   attr_reader :response
+  attr_reader :http
 
   def initialize(url, use_ssl=true)
     @uri = URI.parse(url)
@@ -88,6 +89,8 @@ payload = {
 }
 
 api = WebAccess.new(url)
+#api.http.ca_file = 'C:/ssl_certs/cacert.pem'
+
 api.setQuery('APIKEY=1234')
 
 begin
